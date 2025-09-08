@@ -313,6 +313,28 @@ async function createSubscription(subscriptionId: string, userId: string, custom
     }
 
     logWebhookEvent('Successfully created new subscription', data);
+
+    // Update user preferences to mark onboarding as completed
+    try {
+      const { error: preferencesError } = await supabaseAdmin
+        .from('user_preferences')
+        .upsert({
+          user_id: userId,
+          has_completed_onboarding: true,
+          updated_at: new Date().toISOString()
+        });
+
+      if (preferencesError) {
+        logWebhookEvent('Error updating user preferences', preferencesError);
+        // Don't throw error here - subscription creation should succeed even if preferences update fails
+      } else {
+        logWebhookEvent('Successfully updated user onboarding status', { userId });
+      }
+    } catch (preferencesUpdateError) {
+      logWebhookEvent('Error in preferences update', preferencesUpdateError);
+      // Log but don't fail the subscription creation
+    }
+
     return data;
   } catch (error) {
     logWebhookEvent('Error in createSubscription', error);
