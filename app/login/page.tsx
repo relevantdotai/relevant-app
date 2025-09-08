@@ -4,20 +4,27 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/LoginForm';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
 export default function LoginPage() {
   const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { hasCompletedOnboarding, isLoading: isOnboardingLoading } = useOnboarding();
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      router.replace('/dashboard');
-    } else {
+    if (user && !isOnboardingLoading) {
+      console.log('LoginPage: User authenticated, onboarding status:', hasCompletedOnboarding);
+      
+      const redirectTo = hasCompletedOnboarding ? '/dashboard' : '/onboarding';
+      console.log('LoginPage: Redirecting to:', redirectTo);
+      router.replace(redirectTo);
+    } else if (!user) {
+      console.log('LoginPage: No user, setting loading to false');
       setIsLoading(false);
     }
-  }, [user, router]);
+  }, [user, hasCompletedOnboarding, isOnboardingLoading, router]);
 
   const handleSubmit = async (email: string, password: string, isSignUp: boolean) => {
     setError('');
@@ -34,10 +41,12 @@ export default function LoginPage() {
           return;
         }
         
-        router.replace('/dashboard');
+        // The useEffect will handle the redirect after user state updates
       } else {
-        await signInWithEmail(email, password);
-        router.replace('/dashboard');
+        console.log('LoginPage: Starting email login process');
+        const result = await signInWithEmail(email, password);
+        console.log('LoginPage: Email login successful', result.user?.id);
+        // The useEffect will handle the redirect after user state updates
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Authentication failed');

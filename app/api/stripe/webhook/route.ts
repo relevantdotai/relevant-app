@@ -167,16 +167,23 @@ export const POST = withCors(async function POST(request: NextRequest) {
       }
 
       case 'customer.subscription.updated':
-      case 'customer.subscription.deleted':
       case 'customer.subscription.pending_update_applied':
       case 'customer.subscription.pending_update_expired':
       case 'customer.subscription.trial_will_end': {
         const subscription = event.data.object as Stripe.Subscription;
         
+        // Get updated product information
+        const priceId = subscription.items.data[0]?.price.id;
+        const price = priceId ? await stripe.prices.retrieve(priceId) : null;
+        const product = price?.product ? await stripe.products.retrieve(price.product as string) : null;
+        
         await supabaseAdmin
           .from('subscriptions')
           .update({
             status: subscription.status,
+            price_id: priceId,
+            product_name: product?.name,
+            product_id: product?.id,
             cancel_at_period_end: subscription.cancel_at_period_end,
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             updated_at: new Date().toISOString()
@@ -236,6 +243,17 @@ async function createSubscription(subscriptionId: string, userId: string, custom
     const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
     logWebhookEvent('Retrieved Stripe subscription', stripeSubscription);
 
+    // Get the price and product information
+    const priceId = stripeSubscription.items.data[0]?.price.id;
+    const price = priceId ? await stripe.prices.retrieve(priceId) : null;
+    const product = price?.product ? await stripe.products.retrieve(price.product as string) : null;
+    
+    logWebhookEvent('Retrieved price and product info', { 
+      priceId, 
+      productName: product?.name,
+      productId: product?.id 
+    });
+
     const { data: existingData, error: checkError } = await supabaseAdmin
       .from('subscriptions')
       .select('*')
@@ -252,6 +270,9 @@ async function createSubscription(subscriptionId: string, userId: string, custom
         .from('subscriptions')
         .update({
           status: stripeSubscription.status,
+          price_id: stripeSubscription.items.data[0]?.price.id,
+          product_name: product?.name || existingData.product_name,
+          product_id: product?.id || existingData.product_id,
           current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
           cancel_at_period_end: stripeSubscription.cancel_at_period_end,
           updated_at: new Date().toISOString()
@@ -276,6 +297,8 @@ async function createSubscription(subscriptionId: string, userId: string, custom
         stripe_subscription_id: subscriptionId,
         status: stripeSubscription.status,
         price_id: stripeSubscription.items.data[0]?.price.id,
+        product_name: product?.name || null,
+        product_id: product?.id || null,
         current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
         cancel_at_period_end: stripeSubscription.cancel_at_period_end,
         created_at: new Date().toISOString(),

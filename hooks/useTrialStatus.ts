@@ -8,7 +8,8 @@ export function useTrialStatus() {
   const [trialStatus, setTrialStatus] = useState<{
     isInTrial: boolean;
     trialEndTime: string | null;
-  }>({ isInTrial: false, trialEndTime: null });
+    hasSubscription: boolean;
+  }>({ isInTrial: false, trialEndTime: null, hasSubscription: false });
 
   useEffect(() => {
     async function checkTrialStatus() {
@@ -29,7 +30,8 @@ export function useTrialStatus() {
         if (subscription?.status === 'active' || subscription?.status === 'trialing') {
           setTrialStatus({
             isInTrial: false,
-            trialEndTime: null
+            trialEndTime: null,
+            hasSubscription: true
           });
           setIsLoading(false);
           return;
@@ -54,7 +56,8 @@ export function useTrialStatus() {
 
           setTrialStatus({
             isInTrial,
-            trialEndTime: trial.trial_end_time
+            trialEndTime: trial.trial_end_time,
+            hasSubscription: false
           });
         } else {
           // Create new trial for user
@@ -75,15 +78,16 @@ export function useTrialStatus() {
 
           setTrialStatus({
             isInTrial: true,
-            trialEndTime: newTrial.trial_end_time
+            trialEndTime: newTrial.trial_end_time,
+            hasSubscription: false
           });
         }
       } catch (error) {
-        console.error('Error checking trial status:', error);
         // Set default state on error
         setTrialStatus({
           isInTrial: false,
-          trialEndTime: null
+          trialEndTime: null,
+          hasSubscription: false
         });
       } finally {
         setIsLoading(false);

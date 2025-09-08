@@ -13,8 +13,6 @@ A production-ready Next.js template featuring authentication, dark mode support,
 
 💡 Try the App: [App link](https://mvp.seanchen.io)
 
-☕️ Buy me a coffee: [Cafe Latte](https://buy.stripe.com/5kA176bA895ggog4gh)
-
 🤖️ Discord: [Invite link](https://discord.com/invite/TKKPzZheua)
 
 ## ✨ Features

@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
-import { BuyMeCoffee } from './BuyMeCoffee';
 // import { supabase } from '@/utils/supabase';
 
 // TopBar component handles user profile display and navigation
@@ -60,7 +59,6 @@ export default function TopBar() {
         <div className="flex items-center gap-4">
           {!user ? (
             <>
-              <BuyMeCoffee />
               {/* Show login button for unauthenticated users */}
               <Link
                 href="/login"
@@ -84,7 +82,6 @@ export default function TopBar() {
                   View Subscription
                 </button>
               )}
-              <BuyMeCoffee />
 
               {!isLoadingSubscription && (
                 subscription || isInTrial

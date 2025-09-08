@@ -2,7 +2,6 @@
 
 // import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 
@@ -10,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useSubscription } from '@/hooks/useSubscription';
 // import { OnboardingTour } from '@/components/OnboardingTour';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -92,9 +92,9 @@ export default function Dashboard() {
   const { user, isSubscriber, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { subscription, isLoading: isSubLoading, fetchSubscription } = useSubscription();
+  const { hasCompletedOnboarding, selectedPlan, isLoading: isOnboardingLoading } = useOnboarding();
   const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
-  const { isInTrial, isLoading: isTrialLoading } = useTrialStatus();
+  const { isInTrial, hasSubscription, isLoading: isTrialLoading } = useTrialStatus();
   const [authTimeout, setAuthTimeout] = useState(false);
 
   // Add new states for dashboard functionality
@@ -157,23 +157,23 @@ export default function Dashboard() {
     }
   }, [user?.id, fetchSubscription]);
 
+  // Onboarding check - redirect if not completed or no plan selected
   useEffect(() => {
-    if (user?.id) {
-      // Check if user has completed onboarding
-      const checkOnboarding = async () => {
-        const { data } = await supabase
-          .from('user_preferences')
-          .select('has_completed_onboarding')
-          .eq('user_id', user.id)
-          .single();
-        
-        setHasCompletedOnboarding(!!data?.has_completed_onboarding);
-        console.log('hasCompletedOnboarding: ', hasCompletedOnboarding)
-      };
+    if (user && !isOnboardingLoading) {
+      console.log('Dashboard: Checking onboarding status', {
+        hasCompletedOnboarding,
+        selectedPlan,
+        user: user.id
+      });
       
-      checkOnboarding();
+      // If user hasn't completed onboarding OR doesn't have a plan selected, redirect to onboarding
+      // Exception: Don't redirect if user has an active subscription
+      if ((!hasCompletedOnboarding || !selectedPlan) && !hasSubscription) {
+        console.log('Dashboard: User needs onboarding, redirecting to /onboarding');
+        router.replace('/onboarding');
+      }
     }
-  }, [user?.id, hasCompletedOnboarding]);
+  }, [user, hasCompletedOnboarding, selectedPlan, isOnboardingLoading, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,11 +185,6 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [user, isAuthLoading, isTrialLoading]);
 
-  // useEffect(() => {
-  //   if (!hasCompletedOnboarding) {
-  //     router.push('/onboarding');
-  //   }
-  // }, [hasCompletedOnboarding, router]);
 
   // Update the loading check
   if (!user && (isAuthLoading || isTrialLoading) && !hasCheckedSubscription) {
@@ -222,7 +217,7 @@ export default function Dashboard() {
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600 dark:text-slate-300">
-                {isInTrial ? "Trial Period" : "Premium Plan"}
+                {hasSubscription ? "Premium Plan" : isInTrial ? "Trial Period" : "Free Plan"}
               </span>
             </div>
           </div>

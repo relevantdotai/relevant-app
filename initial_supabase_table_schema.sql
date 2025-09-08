@@ -102,3 +102,8 @@ CREATE POLICY "Users can insert their own subscriptions" ON public.subscriptions
 
 CREATE POLICY "Service role full access to subscriptions" ON public.subscriptions
   FOR ALL TO service_role USING (true);
+
+-- Alters
+ALTER TABLE subscriptions
+  ADD COLUMN product_name TEXT,
+  ADD COLUMN product_id TEXT;

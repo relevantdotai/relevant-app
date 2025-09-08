@@ -24,7 +24,6 @@ export const POST = withCors(async function POST(request: NextRequest) {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking subscription:', checkError);
       throw checkError;
     }
 
