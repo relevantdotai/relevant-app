@@ -9,7 +9,6 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { motion } from 'framer-motion';
-import { supabase } from '@/utils/supabase';
 
 const AUTH_TIMEOUT = 15000; // 15 seconds
 
