@@ -39,6 +39,8 @@ create table public.subscriptions (
   stripe_customer_id text null,
   stripe_subscription_id text null,
   status text null,
+  product_name TEXT null,
+  product_id TEXT null,
   price_id text null,
   created_at timestamp with time zone null default now(),
   cancel_at_period_end boolean null default false,
@@ -102,8 +104,3 @@ CREATE POLICY "Users can insert their own subscriptions" ON public.subscriptions
 
 CREATE POLICY "Service role full access to subscriptions" ON public.subscriptions
   FOR ALL TO service_role USING (true);
-
--- Alters
-ALTER TABLE subscriptions
-  ADD COLUMN product_name TEXT,
-  ADD COLUMN product_id TEXT;
