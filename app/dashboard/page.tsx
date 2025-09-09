@@ -175,7 +175,8 @@ export default function Dashboard() {
 
   // Onboarding check - redirect if not completed or no plan selected
   useEffect(() => {
-    if (user && !isOnboardingLoading && !isPaymentSuccess) {
+    // Only check when user exists AND all loading states are complete
+    if (user && !isAuthLoading && !isOnboardingLoading && !isSubLoading && !isTrialLoading && !isPaymentSuccess) {
       console.log('Dashboard: Checking onboarding status', {
         hasCompletedOnboarding,
         selectedPlan,
@@ -190,7 +191,7 @@ export default function Dashboard() {
         router.replace('/onboarding');
       }
     }
-  }, [user, hasCompletedOnboarding, selectedPlan, isOnboardingLoading, router, isPaymentSuccess, hasSubscription]);
+  }, [user, isAuthLoading, hasCompletedOnboarding, selectedPlan, isOnboardingLoading, isSubLoading, isTrialLoading, router, isPaymentSuccess, hasSubscription]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

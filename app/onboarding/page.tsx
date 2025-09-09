@@ -30,7 +30,8 @@ export default function OnboardingPage() {
 
   // Check if user has already completed onboarding or has valid subscription/trial
   useEffect(() => {
-    if (user?.id && !isOnboardingLoading && !isSubLoading && !isTrialLoading) {
+    // Only check when user exists AND all loading states are complete
+    if (user?.id && !isAuthLoading && !isOnboardingLoading && !isSubLoading && !isTrialLoading) {
       console.log('OnboardingPage: Checking access', {
         hasCompletedOnboarding,
         selectedPlan,
@@ -53,6 +54,7 @@ export default function OnboardingPage() {
     }
   }, [
     user?.id, 
+    isAuthLoading,
     hasCompletedOnboarding, 
     selectedPlan, 
     hasSubscription, 
