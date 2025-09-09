@@ -107,7 +107,8 @@ function ProfileContent() {
       if (!response.ok) throw new Error('Failed to cancel subscription');
       
       setIsCancelModalOpen(false);
-      router.refresh();
+      // Refetch subscription data to update the UI
+      await fetchSubscription();
     } catch (error) {
       console.error('Error canceling subscription:', error);
     } finally {
@@ -129,7 +130,8 @@ function ProfileContent() {
       
       if (!response.ok) throw new Error('Failed to reactivate subscription');
       
-      router.refresh();
+      // Refetch subscription data to update the UI
+      await fetchSubscription();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
     }
