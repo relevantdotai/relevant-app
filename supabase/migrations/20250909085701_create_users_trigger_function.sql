@@ -7,8 +7,8 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
     INSERT INTO public.user_preferences (user_id, has_completed_onboarding)
     VALUES (NEW.id, FALSE);
     
-    INSERT INTO public.user_trials (user_id, trial_start_time, trial_end_time)
-    VALUES (NEW.id, NOW(), NOW() + INTERVAL '48 hours');
+    -- INSERT INTO public.user_trials (user_id, trial_start_time, trial_end_time)
+    -- VALUES (NEW.id, NOW(), NOW() + INTERVAL '48 hours');
     
     RETURN NEW;
   END;

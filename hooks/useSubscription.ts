@@ -12,6 +12,7 @@ export interface Subscription {
   stripe_subscription_id: string;
   cancel_at_period_end: boolean;
   current_period_end: string;
+  product_name: string | null;
   created_at: string;
   updated_at: string;
 }

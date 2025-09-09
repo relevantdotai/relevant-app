@@ -60,25 +60,10 @@ export function useTrialStatus() {
             hasSubscription: false
           });
         } else {
-          // Create new trial for user
-          const trialEndTime = new Date();
-          trialEndTime.setHours(trialEndTime.getHours() + 48);
-
-          const { data: newTrial, error: insertError } = await supabase
-            .from('user_trials')
-            .upsert({ // Use upsert instead of insert to handle duplicates
-              user_id: user.id,
-              trial_end_time: trialEndTime.toISOString(),
-              is_trial_used: false
-            })
-            .select('trial_end_time')
-            .single();
-
-          if (insertError) throw insertError;
-
+          // User has no trial record - they are in trial period but don't create record yet
           setTrialStatus({
             isInTrial: true,
-            trialEndTime: newTrial.trial_end_time,
+            trialEndTime: null,
             hasSubscription: false
           });
         }

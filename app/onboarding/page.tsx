@@ -2,83 +2,36 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { OnboardingLayout } from '@/components/onboarding/OnboardingLayout';
 import { OnboardingPricing } from '@/components/onboarding/OnboardingPricing';
-import { useOnboarding } from '@/hooks/useOnboarding';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { useNavigation } from '@/hooks/useNavigation';
 import { motion } from 'framer-motion';
 
 const AUTH_TIMEOUT = 15000; // 15 seconds
 
 export default function OnboardingPage() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
+  const { redirectIfNeeded, isLoading } = useNavigation();
   const [authTimeout, setAuthTimeout] = useState(false);
-  const { hasCompletedOnboarding, selectedPlan, isLoading: isOnboardingLoading } = useOnboarding();
-  const { subscription, isLoading: isSubLoading } = useSubscription();
-  const { hasSubscription, isInTrial, isLoading: isTrialLoading } = useTrialStatus();
 
-  // Redirect if user is not authenticated
+  // Centralized navigation logic
   useEffect(() => {
-    if (!isAuthLoading && !user) {
-      console.log('OnboardingPage: No user, redirecting to login');
-      router.replace('/login');
-    }
-  }, [user, isAuthLoading, router]);
-
-  // Check if user has already completed onboarding or has valid subscription/trial
-  useEffect(() => {
-    // Only check when user exists AND all loading states are complete
-    if (user?.id && !isAuthLoading && !isOnboardingLoading && !isSubLoading && !isTrialLoading) {
-      console.log('OnboardingPage: Checking access', {
-        hasCompletedOnboarding,
-        selectedPlan,
-        hasSubscription,
-        isInTrial,
-        subscriptionStatus: subscription?.status
-      });
-
-      // Redirect to dashboard if:
-      // 1. User has completed onboarding AND has selected a plan
-      // 2. OR user has an active subscription
-      // 3. OR user is in trial period
-      const hasValidAccess = hasSubscription || isInTrial;
-      const hasCompletedOnboardingFlow = hasCompletedOnboarding && selectedPlan;
-
-      if (hasValidAccess || hasCompletedOnboardingFlow) {
-        console.log('OnboardingPage: User has valid access, redirecting to dashboard');
-        router.replace('/dashboard');
-      }
-    }
-  }, [
-    user?.id, 
-    isAuthLoading,
-    hasCompletedOnboarding, 
-    selectedPlan, 
-    hasSubscription, 
-    isInTrial, 
-    subscription?.status,
-    isOnboardingLoading, 
-    isSubLoading, 
-    isTrialLoading, 
-    router
-  ]);
+    redirectIfNeeded('/onboarding');
+  }, [redirectIfNeeded]);
 
   // Set auth timeout
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!user && isAuthLoading) {
+      if (!user && isLoading) {
         setAuthTimeout(true);
       }
     }, AUTH_TIMEOUT);
     
     return () => clearTimeout(timer);
-  }, [user, isAuthLoading]);
+  }, [user, isLoading]);
 
   // Show loading state
-  if (!user && (isAuthLoading || isOnboardingLoading || isSubLoading || isTrialLoading)) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">

@@ -1,15 +1,11 @@
 "use client";
 
 // import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-
-
-import { useRouter } from 'next/navigation';
 import { useSubscription } from '@/hooks/useSubscription';
 // import { OnboardingTour } from '@/components/OnboardingTour';
-import { useTrialStatus } from '@/hooks/useTrialStatus';
-import { useOnboarding } from '@/hooks/useOnboarding';
+import { useNavigation } from '@/hooks/useNavigation';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -22,7 +18,6 @@ import {
   Activity
 } from 'lucide-react';
 
-const AUTH_TIMEOUT = 15000; // 15 seconds
 
 // Dashboard metrics data
 const dashboardMetrics = [
@@ -85,17 +80,9 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
-
-  
-  // const { isConnected } = useWebSocket();
-  // const [fullResponse, setFullResponse] = useState('');
-  const { user, isSubscriber, isLoading: isAuthLoading } = useAuth();
-  const router = useRouter();
-  const { subscription, isLoading: isSubLoading, fetchSubscription } = useSubscription();
-  const { hasCompletedOnboarding, selectedPlan, isLoading: isOnboardingLoading } = useOnboarding();
-  const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
-  const { isInTrial, hasSubscription, isLoading: isTrialLoading } = useTrialStatus();
-  const [authTimeout, setAuthTimeout] = useState(false);
+  const { user, isSubscriber } = useAuth();
+  const { subscription, fetchSubscription } = useSubscription();
+  const { redirectIfNeeded, shouldShowPage, isLoading } = useNavigation();
 
   // Add new states for dashboard functionality
   // const [repositories, setRepositories] = useState([]);
@@ -103,61 +90,19 @@ export default function Dashboard() {
   // const [recentFeedback, setRecentFeedback] = useState([]);
   // const [pendingPRs, setPendingPRs] = useState([]);
 
-  // First check - Subscription and trial check
+  // Centralized navigation logic
   useEffect(() => {
-    if (isSubLoading || isTrialLoading) return;
-    
-    const hasValidSubscription = ['active', 'trialing'].includes(subscription?.status || '');
-    
-    console.log('Access check isInTrial:', {
-      hasSubscription: !!subscription,
-      status: subscription?.status,
-      isInTrial: isInTrial,
-      validUntil: subscription?.current_period_end
-    });
+    redirectIfNeeded('/dashboard');
+  }, [redirectIfNeeded]);
 
-    // Only redirect if there's no valid subscription AND no valid trial
-    if (!hasValidSubscription && !isInTrial) {
-      console.log('No valid subscription or trial, redirecting');
-      router.replace('/profile');
-    }
-  }, [subscription, isSubLoading, isTrialLoading, router, isInTrial]);
-
-  // Second check - Auth check
+  // Refresh subscription data when user changes
   useEffect(() => {
-    if (isAuthLoading || isTrialLoading) return;
-
-    console.log('Access check:', {
-      isSubscriber,
-      hasCheckedSubscription,
-      isInTrial: isInTrial,
-      authLoading: isAuthLoading,
-    });
-
-    if (!hasCheckedSubscription) {
-      setHasCheckedSubscription(true);
-      
-      // Allow access for both subscribers and trial users
-      if (!user || (!isSubscriber && !isInTrial && !isAuthLoading)) {
-        console.log('No valid subscription or trial, redirecting');
-        router.replace('/profile');
-      }
-    }
-  }, [isSubscriber, isAuthLoading, hasCheckedSubscription, router, user, subscription, isTrialLoading, isInTrial]);
-
-  // Add refresh effect
-  useEffect(() => {
-    const refreshSubscription = async () => {
-      await fetchSubscription();
-      setHasCheckedSubscription(true);
-    };
-    
     if (user?.id) {
-      refreshSubscription();
+      fetchSubscription();
     }
   }, [user?.id, fetchSubscription]);
 
-  // Check for payment success to skip onboarding redirect temporarily
+  // Check for payment success
   const isPaymentSuccess = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const urlParams = new URLSearchParams(window.location.search);
@@ -173,54 +118,32 @@ export default function Dashboard() {
     }
   }, [isPaymentSuccess]);
 
-  // Onboarding check - redirect if not completed or no plan selected
-  useEffect(() => {
-    // Only check when user exists AND all loading states are complete
-    if (user && !isAuthLoading && !isOnboardingLoading && !isSubLoading && !isTrialLoading && !isPaymentSuccess) {
-      console.log('Dashboard: Checking onboarding status', {
-        hasCompletedOnboarding,
-        selectedPlan,
-        user: user.id,
-        isPaymentSuccess
-      });
-      
-      // If user hasn't completed onboarding OR doesn't have a plan selected, redirect to onboarding
-      // Exception: Don't redirect if user has an active subscription OR just completed payment
-      if ((!hasCompletedOnboarding || !selectedPlan) && !hasSubscription) {
-        console.log('Dashboard: User needs onboarding, redirecting to /onboarding');
-        router.replace('/onboarding');
+
+
+  // If user shouldn't be on dashboard, show loading or redirect
+  if (!shouldShowPage('/dashboard')) {
+    if (isLoading) {
+      // User has no subscription but we're still loading - redirect to onboarding
+      if (user && !isSubscriber) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mb-4 mx-auto"></div>
+              <p className="text-foreground">Redirecting to setup...</p>
+            </div>
+          </div>
+        );
       }
-    }
-  }, [user, isAuthLoading, hasCompletedOnboarding, selectedPlan, isOnboardingLoading, isSubLoading, isTrialLoading, router, isPaymentSuccess, hasSubscription]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!user && (isAuthLoading || isTrialLoading)) {
-        setAuthTimeout(true);
-      }
-    }, AUTH_TIMEOUT);
-    
-    return () => clearTimeout(timer);
-  }, [user, isAuthLoading, isTrialLoading]);
-
-
-  // Update the loading check
-  if (!user && (isAuthLoading || isTrialLoading) && !hasCheckedSubscription) {
-    console.log('user: ', user)
-    console.log('isAuthLoading: ', isAuthLoading)
-    console.log('hasCheckedSubscription: ', hasCheckedSubscription)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mb-4 mx-auto"></div>
-          <p className="text-foreground">
-            {authTimeout ? 
-              "Taking longer than usual? Try refreshing the page 😊." :
-              "Verifying access..."}
-          </p>
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mb-4 mx-auto"></div>
+            <p className="text-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    return null; // Will redirect via useEffect
   }
 
 
@@ -255,7 +178,18 @@ export default function Dashboard() {
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600 dark:text-slate-300">
-                {hasSubscription ? "Premium Plan" : isInTrial ? "Trial Period" : "Free Plan"}
+                {subscription?.product_name ? (
+                  <>
+                    {subscription.product_name}
+                    {subscription.status === "trialing" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                        (Trial)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  "Free Plan"
+                )}
               </span>
             </div>
           </div>
