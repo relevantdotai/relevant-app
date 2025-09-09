@@ -25,21 +25,24 @@ export function useSubscription() {
   const subscriptionCache = new Map<string, {data: Subscription | null, timestamp: number}>();
   const CACHE_DURATION = 30000; // 30 seconds
 
-  const fetchSubscription = useCallback(async () => {
+  const fetchSubscription = useCallback(async (forceFresh = false) => {
     if (!user?.id) {
       setSubscription(null);
       setLoading(false);
       return;
     }
 
-    // Check cache first
-    const cached = subscriptionCache.get(user.id);
     const now = Date.now();
-    
-    if (cached && (now - cached.timestamp < CACHE_DURATION)) {
-      setSubscription(cached.data);
-      setLoading(false);
-      return;
+
+    // Check cache first (unless forced fresh)
+    if (!forceFresh) {
+      const cached = subscriptionCache.get(user.id);
+      
+      if (cached && (now - cached.timestamp < CACHE_DURATION)) {
+        setSubscription(cached.data);
+        setLoading(false);
+        return;
+      }
     }
 
     try {

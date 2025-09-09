@@ -22,6 +22,7 @@ function ProfileContent() {
   const paymentStatus = searchParams.get('payment');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isInTrial, trialEndTime } = useTrialStatus();
 
@@ -107,11 +108,12 @@ function ProfileContent() {
       if (!response.ok) throw new Error('Failed to cancel subscription');
       
       setIsCancelModalOpen(false);
-      // Refetch subscription data to update the UI
-      await fetchSubscription();
+      // Force fresh fetch to bypass cache and update the UI
+      await fetchSubscription(true);
+      // Stop spinning after data is refreshed
+      setIsCancelling(false);
     } catch (error) {
       console.error('Error canceling subscription:', error);
-    } finally {
       setIsCancelling(false);
     }
   };
@@ -119,6 +121,7 @@ function ProfileContent() {
   const handleReactivateSubscription = async () => {
     if (!subscription?.stripe_subscription_id) return;
     
+    setIsReactivating(true);
     try {
       const response = await fetch('/api/stripe/reactivate', {
         method: 'POST',
@@ -130,10 +133,13 @@ function ProfileContent() {
       
       if (!response.ok) throw new Error('Failed to reactivate subscription');
       
-      // Refetch subscription data to update the UI
-      await fetchSubscription();
+      // Force fresh fetch to bypass cache and update the UI
+      await fetchSubscription(true);
+      // Stop spinning after data is refreshed
+      setIsReactivating(false);
     } catch (error) {
       console.error('Error reactivating subscription:', error);
+      setIsReactivating(false);
     }
   };
 
@@ -205,9 +211,17 @@ function ProfileContent() {
                   </p>
                   <button
                     onClick={handleReactivateSubscription}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                    disabled={isReactivating}
                   >
-                    Resume Subscription
+                    {isReactivating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Reactivating...
+                      </>
+                    ) : (
+                      'Resume Subscription'
+                    )}
                   </button>
                 </div>
               ) : (subscription.status === 'active' || subscription.status === 'trialing') ? (
