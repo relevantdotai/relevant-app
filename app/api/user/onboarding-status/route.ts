@@ -25,7 +25,6 @@ export async function GET() {
 
     // If no preferences record exists, create one
     if (error && error.code === 'PGRST116') {
-      console.log('API: Creating initial user preferences for user:', user.id);
       const { data: newPreferences, error: insertError } = await supabase
         .from('user_preferences')
         .insert({

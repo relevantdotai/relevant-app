@@ -63,23 +63,23 @@ export function OnboardingPricing({ userId, userEmail }: OnboardingPricingProps)
       stripePaymentLink: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PAYMENT_LINK!,
       cta: 'Start Trial'
     },
-    {
-      id: 'custom',
-      name: 'Custom',
-      price: 'Custom',
-      interval: '',
-      description: 'Tailored to your needs',
-      features: [
-        'Custom development',
-        'Dedicated support',
-        'Custom SLA',
-        'On-premise options',
-        'Training sessions'
-      ],
-      popular: false,
-      stripePaymentLink: null,
-      cta: 'Contact Sales'
-    }
+    // {
+    //   id: 'custom',
+    //   name: 'Custom',
+    //   price: 'Custom',
+    //   interval: '',
+    //   description: 'Tailored to your needs',
+    //   features: [
+    //     'Custom development',
+    //     'Dedicated support',
+    //     'Custom SLA',
+    //     'On-premise options',
+    //     'Training sessions'
+    //   ],
+    //   popular: false,
+    //   stripePaymentLink: null,
+    //   cta: 'Contact Sales'
+    // }
   ];
 
   const handlePlanSelect = async (tier: PricingTier) => {
@@ -111,7 +111,6 @@ export function OnboardingPricing({ userId, userEmail }: OnboardingPricingProps)
       paymentUrl.searchParams.set('prefilled_email', userEmail);
       paymentUrl.searchParams.set('client_reference_id', userId);
       
-      console.log('Redirecting to Stripe Payment Link:', paymentUrl.toString());
       window.location.href = paymentUrl.toString();
     } catch (error) {
       console.error('Error processing plan selection:', error);

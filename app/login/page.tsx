@@ -15,13 +15,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isOnboardingLoading) {
-      console.log('LoginPage: User authenticated, onboarding status:', hasCompletedOnboarding);
-      
       const redirectTo = hasCompletedOnboarding ? '/dashboard' : '/onboarding';
-      console.log('LoginPage: Redirecting to:', redirectTo);
       router.replace(redirectTo);
     } else if (!user) {
-      console.log('LoginPage: No user, setting loading to false');
       setIsLoading(false);
     }
   }, [user, hasCompletedOnboarding, isOnboardingLoading, router]);
@@ -43,9 +39,7 @@ export default function LoginPage() {
         
         // The useEffect will handle the redirect after user state updates
       } else {
-        console.log('LoginPage: Starting email login process');
-        const result = await signInWithEmail(email, password);
-        console.log('LoginPage: Email login successful', result.user?.id);
+        await signInWithEmail(email, password);
         // The useEffect will handle the redirect after user state updates
       }
     } catch (error) {

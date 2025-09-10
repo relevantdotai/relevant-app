@@ -96,7 +96,6 @@ export function useSubscription() {
   const debouncedSyncWithStripe = useCallback(
     debounce(async (subscriptionId: string) => {
       if (syncRetries >= MAX_SYNC_RETRIES) {
-        console.log('Max sync retries reached');
         return;
       }
 
@@ -143,9 +142,6 @@ export function useSubscription() {
         async (payload) => {
           const isValid = checkValidSubscription([payload.new as Subscription]);
           setSubscription(isValid ? payload.new as Subscription : null);
-          if (!isValid) {
-            console.log('Subscription expired or invalidated');
-          }
         }
       )
       .subscribe();

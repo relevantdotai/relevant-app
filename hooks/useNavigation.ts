@@ -11,7 +11,7 @@ export function useNavigation() {
   const { user, isSubscriber, isLoading: isAuthLoading } = useAuth();
   const { hasCompletedOnboarding, selectedPlan, isLoading: isOnboardingLoading } = useOnboarding();
   const { subscription, isLoading: isSubLoading } = useSubscription();
-  const { isInTrial, isLoading: isTrialLoading } = useTrialStatus();
+  const { isLoading: isTrialLoading } = useTrialStatus();
   const router = useRouter();
 
   const isLoading = isAuthLoading || isOnboardingLoading || isSubLoading || isTrialLoading;
@@ -19,25 +19,15 @@ export function useNavigation() {
   // Single source of truth for where user should be
   const getDestination = () => {
     if (!user) {
-      console.log('getDestination: No user -> /login');
       return '/login';
     }
     
-    console.log('getDestination check:', {
-      user: !!user,
-      isSubscriber,
-      isInTrial,
-      shouldGoToOnboarding: !isSubscriber
-    });
-    
     // Simple: If no subscription, go to onboarding (ignore trial)
     if (!isSubscriber) {
-      console.log('getDestination: No subscription -> /onboarding');
       return '/onboarding';
     }
     
     // If has subscription, go to dashboard
-    console.log('getDestination: Has subscription -> /dashboard');
     return '/dashboard';
   };
 
@@ -46,17 +36,7 @@ export function useNavigation() {
     
     const destination = getDestination();
     
-    console.log('Navigation check:', {
-      currentPath,
-      destination,
-      user: !!user,
-      isSubscriber,
-      isInTrial,
-      isLoading
-    });
-    
     if (currentPath !== destination) {
-      console.log(`Redirecting from ${currentPath} to ${destination}`);
       router.replace(destination);
     }
   };

@@ -3,20 +3,15 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 
 export default async function OnboardingSuccessPage() {
-  console.log('OnboardingSuccess: Processing payment completion');
-  
   // Get the authenticated user
   const supabase = createServerComponentClient({ cookies });
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    console.log('OnboardingSuccess: No user found, redirecting to login');
     redirect('/login');
   }
 
   try {
-    console.log('OnboardingSuccess: Marking onboarding as complete for user:', user.id);
-    
     // Mark onboarding as complete
     const { error: onboardingError } = await supabase
       .from('user_preferences')
@@ -32,7 +27,6 @@ export default async function OnboardingSuccessPage() {
 
     // Sync subscription status from Stripe
     try {
-      console.log('OnboardingSuccess: Syncing subscription status with Stripe');
       const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/sync`, {
         method: 'POST',
         headers: { 
@@ -55,6 +49,5 @@ export default async function OnboardingSuccessPage() {
   }
 
   // Always redirect to dashboard after processing
-  console.log('OnboardingSuccess: Redirecting to dashboard');
   redirect('/dashboard');
 }

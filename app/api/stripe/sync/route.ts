@@ -8,7 +8,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export const POST = withCors(async function POST(request: NextRequest) {
   try {
-    console.log('Starting sync process...');
     const { subscriptionId } = await request.json();
     
     if (!subscriptionId) {
@@ -29,7 +28,6 @@ export const POST = withCors(async function POST(request: NextRequest) {
 
     // If no subscription exists in database, we need to create it
     if (!existingSubscription) {
-      console.log('No existing subscription found, fetching from Stripe...');
       const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
       
       // Get customer details to get user_id

@@ -11,8 +11,8 @@ import { Suspense } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { StripeBuyButton } from '@/components/StripeBuyButton';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
+import { UpgradePlans } from '@/components/UpgradePlans';
 // import { PricingSection } from '@/components/PricingSection';
-// import { StripeBuyButton } from '@/components/StripeBuyButton';
 
 function ProfileContent() {
   const { user } = useAuth();
@@ -23,14 +23,16 @@ function ProfileContent() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [showUpgradePlans, setShowUpgradePlans] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { isInTrial, trialEndTime } = useTrialStatus();
 
   // Show payment success message if redirected from successful payment
   useEffect(() => {
     if (paymentStatus === 'success') {
       // Could add a toast notification here
-      console.log('Payment successful!');
     }
   }, [paymentStatus]);
 
@@ -39,7 +41,6 @@ function ProfileContent() {
     if (subscription?.stripe_subscription_id) {
       try {
         syncWithStripe(subscription.stripe_subscription_id);
-        console.log('Subscription synced with Stripe successfully');
       } catch (err: unknown) {
         console.error('Error syncing with Stripe:', err);
         setError('Unable to load subscription details');
@@ -57,7 +58,6 @@ function ProfileContent() {
     const attemptRefresh = async () => {
       if (refreshAttempts < MAX_REFRESH_ATTEMPTS) {
         refreshAttempts++;
-        console.log(`Attempting auto-refresh (${refreshAttempts}/${MAX_REFRESH_ATTEMPTS})`);
         await fetchSubscription();
         
         // If still loading, schedule next attempt
@@ -143,6 +143,84 @@ function ProfileContent() {
     }
   };
 
+  const handleUpgrade = async (newPriceId: string, planName: string) => {
+    if (!subscription?.stripe_subscription_id) return;
+    
+    setIsUpgrading(true);
+    try {
+      const response = await fetch('/api/stripe/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          subscriptionId: subscription.stripe_subscription_id,
+          newPriceId,
+          prorate: true
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upgrade subscription');
+      }
+      
+      const result = await response.json();
+      
+      // Show success message
+      const action = planName.toLowerCase().includes('enterprise') && 
+                    getCurrentPlanId() === 'pro' ? 'upgraded' : 'changed';
+      
+      if (result.prorationAmount > 0) {
+        setSuccessMessage(
+          `Successfully ${action} to ${planName}! Prorated charge: $${(result.prorationAmount / 100).toFixed(2)}`
+        );
+      } else if (result.prorationAmount < 0) {
+        setSuccessMessage(
+          `Successfully ${action} to ${planName}! Credit applied: $${Math.abs(result.prorationAmount / 100).toFixed(2)}`
+        );
+      } else {
+        setSuccessMessage(`Successfully ${action} to ${planName}!`);
+      }
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+      
+      // Force fresh fetch to update the UI
+      await fetchSubscription(true);
+      setShowUpgradePlans(false);
+    } catch (error) {
+      console.error('Error changing subscription:', error);
+      setError(error instanceof Error ? error.message : 'Failed to change subscription plan');
+      
+      // Auto-hide error after 8 seconds
+      setTimeout(() => setError(null), 8000);
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
+  const getCurrentPlanId = () => {
+    // Map your product names to plan IDs - be more flexible with matching
+    if (!subscription?.product_name) return null;
+    
+    const productName = subscription.product_name.toLowerCase();
+    
+    // Handle different variations of plan names
+    if (productName.includes('pro')) return 'pro';
+    if (productName.includes('enterprise')) return 'enterprise';
+    
+    // Default fallback - if we don't recognize it, assume it's the lowest tier
+    return 'pro';
+  };
+
+
+  const canChangePlan = () => {
+    // Show change plan options if user has an active subscription
+    // This includes both upgrades and downgrades
+    return subscription && 
+           subscription.status === 'active' && 
+           getCurrentPlanId();
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -171,6 +249,22 @@ function ProfileContent() {
           </div>
         )}
         
+        {successMessage && (
+          <div className="mb-8 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+            <p className="text-green-600 dark:text-green-400">
+              🎉 {successMessage}
+            </p>
+          </div>
+        )}
+        
+        {error && !isLoadingSubscription && (
+          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
+            <p className="text-red-600 dark:text-red-400">
+              ❌ {error}
+            </p>
+          </div>
+        )}
+        
         <h1 className="text-3xl font-bold mb-8">Profile</h1>
         
         <AccountManagement />
@@ -178,9 +272,7 @@ function ProfileContent() {
         {/* Subscription Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Subscription Status</h2>
-          {error ? (
-            <div className="text-red-500 dark:text-red-400">{error}</div>
-          ) : isLoadingSubscription ? (
+          {isLoadingSubscription ? (
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span>Loading subscription details...</span>
@@ -225,12 +317,22 @@ function ProfileContent() {
                   </button>
                 </div>
               ) : (subscription.status === 'active' || subscription.status === 'trialing') ? (
-                <button
-                  onClick={() => setIsCancelModalOpen(true)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg mt-4"
-                >
-                  Cancel Subscription
-                </button>
+                <div className="mt-4 flex gap-4">
+                  {canChangePlan() && (
+                    <button
+                      onClick={() => setShowUpgradePlans(true)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                      Change Plan
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    Cancel Subscription
+                  </button>
+                </div>
               ) : null}
             </div>
           ) : (
@@ -263,6 +365,30 @@ function ProfileContent() {
             </div>
           )}
         </div>
+
+        {/* Change Plans Modal */}
+        {showUpgradePlans && canChangePlan() && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold">Change Your Plan</h3>
+                <button
+                  onClick={() => setShowUpgradePlans(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  disabled={isUpgrading}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <UpgradePlans
+                currentPlan={getCurrentPlanId() || ''}
+                onUpgrade={handleUpgrade}
+                isUpgrading={isUpgrading}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Show pricing section if user doesn't have an active subscription */}
         {/* {(!subscription || subscription.status === 'canceled') && (

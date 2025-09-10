@@ -24,7 +24,6 @@ export function StripeBuyButton({ buyButtonId, publishableKey, className }: Stri
       if (event.origin !== 'https://js.stripe.com') return;
       
       if (event.data.type === 'buy-button:success') {
-        console.log('Payment successful, redirecting...');
         window.localStorage.setItem('stripe_payment_intent', event.data.payload.paymentIntentId);
         router.push('/profile?payment=success');
         router.refresh();
@@ -38,10 +37,6 @@ export function StripeBuyButton({ buyButtonId, publishableKey, className }: Stri
     };
   }, [router]);
 
-  useEffect(() => {
-    // Debug log to verify Stripe key
-    // console.log('Stripe public key:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 8) + '...');
-  }, []);
 
   if (!user) return null;
 

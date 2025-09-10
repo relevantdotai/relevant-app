@@ -3,13 +3,11 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  console.log('AuthCallback: Processing callback');
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next');
 
   if (code) {
-    console.log('AuthCallback: Exchanging code for session');
     const supabase = createRouteHandlerClient({ cookies });
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
@@ -23,7 +21,6 @@ export async function GET(request: Request) {
 
     if (user) {
       // Check if user needs onboarding
-      console.log('AuthCallback: Checking onboarding status for user:', user.id);
       const preferencesResult = await supabase
         .from('user_preferences')
         .select('has_completed_onboarding')
@@ -35,7 +32,6 @@ export async function GET(request: Request) {
       
       // If no preferences record exists, create one
       if (error && error.code === 'PGRST116') {
-        console.log('AuthCallback: Creating initial user preferences for new user:', user.id);
         const { data: newPreferences } = await supabase
           .from('user_preferences')
           .insert({
@@ -49,11 +45,9 @@ export async function GET(request: Request) {
       }
       
       const needsOnboarding = !preferences?.has_completed_onboarding;
-      console.log('AuthCallback: User needs onboarding:', needsOnboarding);
 
       // Redirect to the next page if provided, otherwise check onboarding status
       if (next) {
-        console.log('AuthCallback: Redirecting to:', next);
         return NextResponse.redirect(new URL(next, requestUrl.origin));
       }
 
@@ -61,14 +55,11 @@ export async function GET(request: Request) {
         ? `${requestUrl.origin}/onboarding`
         : `${requestUrl.origin}/dashboard`;
         
-      console.log('AuthCallback: Success, redirecting to:', redirectTo);
       return NextResponse.redirect(redirectTo);
     }
 
-    console.log('AuthCallback: Success, redirecting to dashboard (no user)');
     return NextResponse.redirect(new URL('/dashboard', requestUrl.origin));
   }
 
-  console.log('AuthCallback: No code present, redirecting to login');
   return NextResponse.redirect(new URL('/login', requestUrl.origin));
 } 
