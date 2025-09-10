@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
-import { StripeBuyButton } from '@/components/StripeBuyButton';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 
 export default function PaymentPage() {
@@ -68,12 +67,14 @@ export default function PaymentPage() {
       
       <SubscriptionStatus />
 
-      <div className="w-full max-w-md px-4">
-        <StripeBuyButton
-          className="flex justify-center text-neutral"
-          buyButtonId={process.env.NEXT_PUBLIC_STRIPE_BUTTON_ID || ''}
-          publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
-        />
+      <div className="w-full max-w-md px-4 text-center">
+        <p className="mb-6 text-gray-600">Choose the plan that best fits your needs.</p>
+        <a
+          href="/onboarding"
+          className="inline-block px-8 py-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+        >
+          View Plans & Subscribe
+        </a>
       </div>
     </div>
   );

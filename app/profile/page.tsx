@@ -9,7 +9,6 @@ import { AccountManagement } from '@/components/AccountManagement';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Suspense } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { StripeBuyButton } from '@/components/StripeBuyButton';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { UpgradePlans } from '@/components/UpgradePlans';
 // import { PricingSection } from '@/components/PricingSection';
@@ -358,10 +357,14 @@ function ProfileContent() {
                 <p>Subscribe to unlock the amazing cooking experience.</p>
               )}
               
-              <StripeBuyButton
-                buyButtonId={process.env.NEXT_PUBLIC_STRIPE_BUTTON_ID || ''}
-                publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
-              />
+              <div className="text-center">
+                <a
+                  href="/pay"
+                  className="inline-block px-6 py-3 bg-primary hover:bg-primary-dark text-white rounded-full shadow-subtle hover:shadow-hover transition-all"
+                >
+                  Choose Your Plan
+                </a>
+              </div>
             </div>
           )}
         </div>
